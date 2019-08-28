@@ -20,6 +20,7 @@ export default class RepositoryModel {
   static getList() {
     return fetch(getApiUrl(repoEndpoint))
       .then(resp => resp.json())
+    .then(resp => { console.log(resp) ; return resp; })
       .then(repos => repos.map(datum => new RepositoryModel(datum)));
   }
 

@@ -4,7 +4,7 @@ import { Auth, Hooks, Queue } from 'taskcluster-client-web';
 import { satisfiesExpression } from 'taskcluster-lib-scopes';
 
 import taskcluster from '../helpers/taskcluster';
-import { tcRootUrl } from '../helpers/url';
+import { loginRootUrl } from '../helpers/url';
 
 export default class TaskclusterModel {
   static taskInContext(tagSetList, taskTags) {
@@ -23,7 +23,15 @@ export default class TaskclusterModel {
     task,
     input,
     staticActionVariables,
+    currentRepo,
   }) {
+    if (!currentRepo) { throw Error('uhoh, no currentRepo in submit'); }
+    if (currentRepo.tc_root_url !== loginRootUrl) {
+      // This limit could be lifted by allowing users to login to multiple TC deployments at once, using
+      // https://github.com/taskcluster/taskcluster-rfcs/blob/master/rfcs/0147-third-party-login.md
+      throw Error(`Actions are not supported for this repository, as it does not use TC deployment ${loginRootUrl}`)
+    }
+
     const context = defaults(
       {},
       {
@@ -61,21 +69,30 @@ export default class TaskclusterModel {
       });
       const expression = `in-tree:hook-action:${hookGroupId}/${hookId}`;
 
+      /*
       if (!satisfiesExpression(expansion.scopes, expression)) {
         throw new Error(
           `Action is misconfigured: decision task's scopes do not satisfy ${expression}`,
         );
       }
 
+*/
       const result = await hooks.triggerHook(hookGroupId, hookId, hookPayload);
 
       return result.status.taskId;
     }
   }
 
-  static async load(decisionTaskID, job) {
+  static async load(decisionTaskID, job, currentRepo) {
+    if (!currentRepo) { throw Error('uhoh, no currentRepo in load'); }
     if (!decisionTaskID) {
       throw Error("No decision task, can't find taskcluster actions");
+    }
+
+    if (currentRepo.tc_root_url !== loginRootUrl) {
+      // This limit could be lifted by allowing users to login to multiple TC deployments at once, using
+      // https://github.com/taskcluster/taskcluster-rfcs/blob/master/rfcs/0147-third-party-login.md
+      throw Error(`Actions are not supported for this repository, as it does not use TC deployment ${loginRootUrl}`)
     }
 
     const queue = taskcluster.getQueue();
@@ -90,7 +107,7 @@ export default class TaskclusterModel {
     let originalTaskPromise = Promise.resolve(null);
     if (job && job.taskcluster_metadata) {
       originalTaskId = job.taskcluster_metadata.task_id;
-      const queue = new Queue({rootUrl: tcRootUrl});
+      const queue = new Queue({rootUrl: currentRepo.tc_root_url});
       originalTaskPromise = queue.task(originalTaskId);
     }
 

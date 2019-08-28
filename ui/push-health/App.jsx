@@ -12,6 +12,8 @@ function hasProps(search) {
   return params.get('repo') && params.get('revision');
 }
 
+// TODO: need to pass currentRepo
+
 const App = () => (
   <BrowserRouter>
     <div>

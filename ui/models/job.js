@@ -83,7 +83,7 @@ export default class JobModel {
     return JobModel.getList(options, config);
   }
 
-  static async retrigger(jobs, repoName, notify, times = 1) {
+  static async retrigger(jobs, repoName, notify, currentRepo, times = 1) {
     const jobTerm = jobs.length > 1 ? 'jobs' : 'job';
 
     try {
@@ -97,7 +97,7 @@ export default class JobModel {
       for (const [key, value] of Object.entries(uniquePerPushJobs)) {
         const decisionTaskId = taskIdMap[key].id;
 
-        TaskclusterModel.load(decisionTaskId).then(async results => {
+        TaskclusterModel.load(decisionTaskId, null, currentRepo).then(async results => {
           const actionTaskId = slugid();
           const taskLabels = value.map(job => job.job_type_name);
 
@@ -128,6 +128,7 @@ export default class JobModel {
             task: null,
             input: actionInput,
             staticActionVariables: results.staticActionVariables,
+            currentRepo,
           })
             .then(() =>
               notify(
@@ -144,12 +145,12 @@ export default class JobModel {
     }
   }
 
-  static async cancelAll(pushId, repoName, notify) {
+  static async cancelAll(pushId, repoName, notify, currentRepo) {
     const { id: decisionTaskId } = await PushModel.getDecisionTaskId(
       pushId,
       notify,
     );
-    const results = await TaskclusterModel.load(decisionTaskId);
+    const results = await TaskclusterModel.load(decisionTaskId, null, currentRepo);
     const cancelAllTask = results.actions.find(
       result => result.name === 'cancel-all',
     );
@@ -160,6 +161,7 @@ export default class JobModel {
         decisionTaskId,
         input: {},
         staticActionVariables: results.staticActionVariables,
+        currentRepo,
       });
     } catch (e) {
       // The full message is too large to fit in a Treeherder
@@ -170,7 +172,7 @@ export default class JobModel {
     notify('Request sent to cancel all jobs via action.json', 'success');
   }
 
-  static async cancel(jobs, repoName, notify) {
+  static async cancel(jobs, repoName, notify, currentRepo) {
     const jobTerm = jobs.length > 1 ? 'jobs' : 'job';
     const taskIdMap = await PushModel.getDecisionTaskMap(
       [...new Set(jobs.map(job => job.push_id))],
@@ -203,7 +205,7 @@ export default class JobModel {
       for (const job of jobs) {
         job.taskcluster_metadata = tcMetadataMap[job.id];
         const decisionTaskId = taskIdMap[job.push_id].id;
-        const results = await TaskclusterModel.load(decisionTaskId, job);
+        const results = await TaskclusterModel.load(decisionTaskId, job, currentRepo);
         const cancelTask = results.actions.find(
           result => result.name === 'cancel',
         );
@@ -215,6 +217,7 @@ export default class JobModel {
             taskId: results.originalTaskId,
             input: {},
             staticActionVariables: results.staticActionVariables,
+            currentRepo,
           });
         } catch (e) {
           // The full message is too large to fit in a Treeherder

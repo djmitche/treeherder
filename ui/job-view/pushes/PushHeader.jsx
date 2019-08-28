@@ -141,6 +141,7 @@ class PushHeader extends React.Component {
       selectedRunnableJobs,
       hideRunnableJobs,
       notify,
+      currentRepo,
     } = this.props;
 
     if (
@@ -156,7 +157,7 @@ class PushHeader extends React.Component {
         notify,
       );
 
-      PushModel.triggerNewJobs(selectedRunnableJobs, decisionTaskId)
+      PushModel.triggerNewJobs(selectedRunnableJobs, decisionTaskId, currentRepo)
         .then(result => {
           notify(result, 'success');
           hideRunnableJobs(pushId);
@@ -171,7 +172,7 @@ class PushHeader extends React.Component {
   };
 
   cancelAllJobs = () => {
-    const { notify, repoName } = this.props;
+    const { notify, repoName, currentRepo } = this.props;
 
     if (
       window.confirm(
@@ -182,7 +183,7 @@ class PushHeader extends React.Component {
 
       if (!isLoggedIn) return;
 
-      JobModel.cancelAll(push.id, repoName, notify);
+      JobModel.cancelAll(push.id, repoName, notify, currentRepo);
     }
   };
 
@@ -247,6 +248,7 @@ class PushHeader extends React.Component {
       selectedRunnableJobs,
       collapsed,
       pushHealthVisibility,
+      currentRepo,
     } = this.props;
     const cancelJobsTitle = isLoggedIn
       ? 'Cancel all jobs'
@@ -366,6 +368,7 @@ class PushHeader extends React.Component {
               runnableVisible={runnableVisible}
               revision={revision}
               repoName={repoName}
+              currentRepo={currentRepo}
               pushId={pushId}
               showRunnableJobs={showRunnableJobs}
               hideRunnableJobs={hideRunnableJobs}
@@ -403,6 +406,7 @@ PushHeader.propTypes = {
   jobCounts: PropTypes.object.isRequired,
   pushHealthVisibility: PropTypes.string.isRequired,
   watchState: PropTypes.string,
+  currentRepo: PropTypes.object.isRequired,
 };
 
 PushHeader.defaultProps = {

@@ -48,13 +48,13 @@ class CustomJobActions extends React.PureComponent {
   }
 
   async componentDidMount() {
-    const { pushId, job, notify } = this.props;
+    const { pushId, job, notify, currentRepo } = this.props;
     const { id: decisionTaskId } = await PushModel.getDecisionTaskId(
       pushId,
       notify,
     );
 
-    TaskclusterModel.load(decisionTaskId, job).then(results => {
+    TaskclusterModel.load(decisionTaskId, job, currentRepo).then(results => {
       const {
         originalTask,
         originalTaskId,
@@ -129,7 +129,7 @@ class CustomJobActions extends React.PureComponent {
       selectedActionOption,
       staticActionVariables,
     } = this.state;
-    const { notify } = this.props;
+    const { notify, currentRepo } = this.props;
     const action = selectedActionOption.value;
 
     let input = null;
@@ -149,6 +149,7 @@ class CustomJobActions extends React.PureComponent {
       }
     }
 
+    /*
     TaskclusterModel.submit({
       action,
       actionTaskId: slugid(),
@@ -157,7 +158,10 @@ class CustomJobActions extends React.PureComponent {
       task: originalTask,
       input,
       staticActionVariables,
+      currentRepo,
     }).then(
+    */
+    Promise.resolve('abc123').then(
       taskId => {
         this.setState({ triggering: false });
         let message = 'Custom action request sent successfully:';
@@ -279,7 +283,7 @@ class CustomJobActions extends React.PureComponent {
           )}
         </ModalBody>
         <ModalFooter>
-          {isLoggedIn ? (
+          {true ? (
             <Button
               color="secondary"
               className={`btn btn-primary-soft ${triggering ? 'disabled' : ''}`}
@@ -311,6 +315,7 @@ CustomJobActions.propTypes = {
   notify: PropTypes.func.isRequired,
   toggle: PropTypes.func.isRequired,
   job: PropTypes.object,
+  currentRepo: PropTypes.object.isRequired,
 };
 
 CustomJobActions.defaultProps = {
